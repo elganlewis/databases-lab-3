@@ -18,10 +18,8 @@ def print_details(connection: sqlite3.Connection):
         print("death:\t\t", row[6], "\n")
 
 if __name__ == "__main__":
-    conn = sqlite3.connect('store.db')
+    with sqlite3.connect('store.db') as conn:
 
-    print_details(conn)
-    update_death(conn, "Claws", "2015-05-13")
-    print_details(conn)
-
-    conn.close()
+        print_details(conn)
+        update_death(conn, "Claws", "2015-05-13")
+        print_details(conn)
