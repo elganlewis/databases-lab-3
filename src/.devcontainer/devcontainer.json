@@ -1,0 +1,26 @@
+{
+  "name": "Python CLI with uv",
+  "image": "://microsoft.com",
+  
+  // Install uv automatically as a feature
+  "features": {
+    "ghcr.io/devcontainers-extra/features/uv:1": {}
+  },
+
+  // Automatically sync the environment and link your CLI command when the container is built
+  "postCreateCommand": "uv sync",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        // Point VS Code to the virtual environment created by uv
+        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "python.terminal.activateEnvInSelectedTerminal": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff" // Optional: Super fast linting/formatting companion tool for uv
+      ]
+    }
+  }
+}

@@ -17,3 +17,32 @@ flightdb = "databases_lab_3.main:main"
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+# Target your specific Python version
+target-version = "py312"
+# Set maximum allowed line length
+line-length = 88
+
+[tool.ruff.lint]
+# Select the rules you want to enforce
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes (missed imports, unused variables)
+    "I",   # isort (alphabetical, organized imports)
+    "B",   # flake8-bugbear (common traps and bugs)
+    "C90", # mccabe complexity checks
+]
+
+# Tell Ruff to ignore specific rules if they get annoying
+ignore = []
+
+[tool.ruff.lint.mccabe]
+# Flag functions with a complexity score higher than 10
+max-complexity = 10
