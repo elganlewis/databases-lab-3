@@ -1,7 +1,10 @@
 # Databases Lab Sheet 3
 
-## Setup
-Created with `python 3.13.5` but should work with older versions.
+## Requirements
+- Created with `python 3.13.5` but should work with older versions.
+- `pipx` install [here](https://pipx.pypa.io/stable/how-to/install-pipx.html)
+- `uv` install using `pipx install uv` or as detailed [here](https://docs.astral.sh/uv/getting-started/installation/)
+
 ### Create Virtual Environment
 ```bash
 # Mac / Linux

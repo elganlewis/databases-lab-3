@@ -1,0 +1,19 @@
+[project]
+name = "databases-lab-3"
+version = "0.1.0"
+description = "Flight DB CLI"
+readme = "README.md"
+authors = [
+    { name = "Elgan Roberts", email = "elr81@bath.ac.uk" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.5.0",
+]
+
+[project.scripts]
+flightdb = "databases_lab_3.main:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
