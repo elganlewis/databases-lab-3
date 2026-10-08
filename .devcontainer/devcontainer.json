@@ -1,6 +1,6 @@
 {
   "name": "Python CLI with uv",
-  "image": "://microsoft.com",
+  "image": "mcr.microsoft.com/devcontainers/python:3.13",
   
   // Install uv automatically as a feature
   "features": {
