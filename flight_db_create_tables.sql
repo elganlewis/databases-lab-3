@@ -1,5 +1,5 @@
--- Flight Management Database (SQLite 3 syntax)
--- Run with:  sqlite3 flight_management.db < flight_management_sqlite_v3.sql
+-- Flight Management Database
+-- Run with:  sqlite3 flight_management.db < flight_db_create_tables.sql
 
 -- Relational Schema:
 
@@ -17,7 +17,6 @@
 -- Foreign keys are OFF by default in SQLite, so turn them on (every connection).
 PRAGMA foreign_keys = ON;
 
--- Drop children before parents
 DROP VIEW  IF EXISTS flight_details;
 DROP TABLE IF EXISTS flight_crew;
 DROP TABLE IF EXISTS pilot_phone;
@@ -108,7 +107,7 @@ CREATE TABLE flight (
     departure_time       DATETIME NOT NULL CHECK (datetime(departure_time) IS departure_time),
     arrival_time         DATETIME NOT NULL CHECK (datetime(arrival_time)   IS arrival_time),
     status               VARCHAR(20) NOT NULL DEFAULT 'Scheduled'
-                         CHECK (status IN ('Scheduled', 'Delayed', 'Cancelled', 'Completed')),
+                         CHECK (status IN ('Scheduled', 'In Progress', 'Delayed', 'Cancelled', 'Completed')),
 
     FOREIGN KEY (departure_airport_id) REFERENCES airport(airport_id)   ON DELETE RESTRICT,
     FOREIGN KEY (arrival_airport_id)   REFERENCES airport(airport_id)   ON DELETE RESTRICT,
@@ -151,41 +150,3 @@ FROM flight f
 JOIN airport  dep ON f.departure_airport_id = dep.airport_id
 JOIN airport  arr ON f.arrival_airport_id   = arr.airport_id
 JOIN aircraft a   ON f.aircraft_id          = a.aircraft_id;
-
--- ---------------------------------------------------------
--- SAMPLE DATA
--- ---------------------------------------------------------
-INSERT INTO airport (iata_code, icao_code, airport_name, city_name, country_code, timezone, latitude, longitude) VALUES
-    ('LHR', 'EGLL', 'Heathrow Airport',     'London',   'GB', 'Europe/London',    51.470000,  -0.454300),
-    ('CDG', 'LFPG', 'Charles de Gaulle',    'Paris',    'FR', 'Europe/Paris',     49.009700,   2.547900),
-    ('JFK', 'KJFK', 'John F. Kennedy Intl', 'New York', 'US', 'America/New_York', 40.641300, -73.778100);
-
-INSERT INTO runway (airport_id, runway_designation, length_m, surface) VALUES
-    (1, '09L', 3902, 'Asphalt'),
-    (1, '09R', 3660, 'Asphalt'),
-    (3, '04L', 3460, 'Asphalt'),
-    (3, '13R', 4423, 'Asphalt');
-
-INSERT INTO aircraft (registration_number, model, manufacturer, capacity, range_km, min_runway_m, year_manufactured) VALUES
-    ('G-EUPT', 'A320', 'Airbus', 180,  6100, 2100, 2012),
-    ('G-XWBA', 'A350', 'Airbus', 331, 15000, 2600, 2019);
-
-INSERT INTO pilot (licence_number, first_name, last_name, hire_date, email) VALUES
-    ('UK-10234', 'Sarah', 'Evans',  '2015-03-12', 'sarah.evans@example.com'),
-    ('UK-10987', 'James', 'Morgan', '2018-07-01', 'james.morgan@example.com'),
-    ('UK-11456', 'Priya', 'Patel',  '2020-01-20', 'priya.patel@example.com');
-
-INSERT INTO pilot_phone (pilot_id, phone_number) VALUES
-    (1, '07700 900111'),
-    (1, '01632 960001'),
-    (2, '07700 900222');
-
-INSERT INTO flight (flight_number, departure_airport_id, arrival_airport_id, aircraft_id, departure_time, arrival_time) VALUES
-    ('BA214', 1, 2, 1, '2026-11-02 08:30:00', '2026-11-02 09:45:00'),
-    ('BA330', 1, 3, 2, '2026-11-02 14:00:00', '2026-11-02 21:10:00');
-
-INSERT INTO flight_crew (flight_id, pilot_id, role) VALUES
-    (1, 1, 'Captain'),
-    (1, 2, 'First Officer'),
-    (2, 3, 'Captain'),
-    (2, 2, 'First Officer');
