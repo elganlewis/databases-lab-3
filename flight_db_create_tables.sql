@@ -30,15 +30,16 @@ DROP TABLE IF EXISTS airport;
 -- AIRPORT
 -- ---------------------------------------------------------
 CREATE TABLE airport (
-    airport_id    INTEGER PRIMARY KEY AUTOINCREMENT,
-    iata_code     CHAR(3) UNIQUE CHECK (iata_code IS NULL OR length(iata_code) = 3),
-    icao_code     CHAR(4) NOT NULL UNIQUE CHECK (length(icao_code) = 4),
-    airport_name  VARCHAR(100) NOT NULL,
-    city_name     VARCHAR(100) NOT NULL,
-    country_code  CHAR(2) NOT NULL CHECK (length(country_code) = 2), -- ISO 3166-1 alpha-2
-    timezone      VARCHAR(50) NOT NULL,                              -- IANA name, e.g. Europe/London
-    latitude      DECIMAL(9,6) NOT NULL CHECK (latitude  BETWEEN -90  AND 90),
-    longitude     DECIMAL(9,6) NOT NULL CHECK (longitude BETWEEN -180 AND 180)
+    airport_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    iata_code       CHAR(3) UNIQUE CHECK (iata_code IS NULL OR length(iata_code) = 3),
+    icao_code       CHAR(4) NOT NULL UNIQUE CHECK (length(icao_code) = 4),
+    airport_name    VARCHAR(100) NOT NULL,
+    city_name       VARCHAR(100) NOT NULL,
+    country_code    CHAR(2) NOT NULL CHECK (length(country_code) = 2), -- ISO 3166-1 alpha-2
+    timezone        VARCHAR(50) NOT NULL,                              -- IANA name, e.g. Europe/London
+    latitude        DECIMAL(9,6) NOT NULL CHECK (latitude  BETWEEN -90  AND 90),
+    longitude       DECIMAL(9,6) NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+    elevation_feet  INTEGER NOT NULL CHECK (elevation_feet BETWEEN -1500 AND 30000)
 );
 
 -- ---------------------------------------------------------
@@ -105,7 +106,7 @@ CREATE TABLE flight (
     arrival_airport_id   INTEGER NOT NULL,
     aircraft_id          INTEGER NOT NULL,
     departure_time       DATETIME NOT NULL CHECK (datetime(departure_time) IS departure_time),
-    arrival_time         DATETIME NOT NULL CHECK (datetime(arrival_time)   IS arrival_time),
+    flight_time_minutes  INTEGER NOT NULL CHECK (flight_time_minutes > 0),
     status               VARCHAR(20) NOT NULL DEFAULT 'Scheduled'
                          CHECK (status IN ('Scheduled', 'In Progress', 'Delayed', 'Cancelled', 'Completed')),
 
@@ -114,7 +115,6 @@ CREATE TABLE flight (
     FOREIGN KEY (aircraft_id)          REFERENCES aircraft(aircraft_id) ON DELETE RESTRICT,
 
     CHECK (departure_airport_id <> arrival_airport_id),
-    CHECK (arrival_time > departure_time),
     UNIQUE (flight_number, departure_time)
 );
 
@@ -132,7 +132,7 @@ CREATE TABLE flight_crew (
 );
 
 -- ---------------------------------------------------------
--- VIEW: derived flight_time (in minutes)
+-- VIEW: derived arrival
 -- Shows the IATA code where one exists, otherwise the ICAO code.
 -- ---------------------------------------------------------
 CREATE VIEW flight_details AS
@@ -141,9 +141,8 @@ SELECT f.flight_id,
        COALESCE(dep.iata_code, dep.icao_code) AS departure_code,
        COALESCE(arr.iata_code, arr.icao_code) AS arrival_code,
        f.departure_time,
-       f.arrival_time,
-       CAST(ROUND((julianday(f.arrival_time) - julianday(f.departure_time)) * 24 * 60)
-            AS INTEGER) AS flight_time_minutes,
+       datetime(f.departure_time, '+' || f.flight_time_minutes || ' minutes') AS arrival_time,
+       f.flight_time_minutes,
        f.status,
        a.registration_number
 FROM flight f

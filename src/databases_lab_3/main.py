@@ -1,19 +1,23 @@
-import sqlite3
 from contextlib import closing
-from pathlib import Path
 
 import click
+from tabulate import tabulate
 
-DB_PATH = Path("flight_management.db")
+from databases_lab_3 import queries
+from databases_lab_3.db import get_connection
 
 
-def get_connection():
-    """Open the database with foreign keys switched on."""
-    if not DB_PATH.exists():
-        raise click.ClickException(f"Database not found: {DB_PATH.resolve()}")
-    db = sqlite3.connect(DB_PATH)
-    db.execute("PRAGMA foreign_keys = ON")
-    return db
+def print_table(rows, headers, empty_message="No results found."):
+    """Print rows as a table, or a message if there are none."""
+    if not rows:
+        click.echo(empty_message)
+        return
+    click.echo(tabulate(rows, headers=headers, tablefmt="simple_outline"))
+
+
+def format_duration(minutes):
+    """Format a number of minutes as e.g. '1h 05m'."""
+    return f"{minutes // 60}h {minutes % 60:02d}m"
 
 
 @click.group()
@@ -22,31 +26,36 @@ def main():
 
 
 @main.command()
-@click.option("--airport", default="all", help="Filter by airport code, e.g. LHR.")
-def flights(airport):
+@click.option("--airport", "-a", default=None, help="Filter by airport code, e.g. LHR.")
+@click.option(
+    "--status", "-s", default=None, help="Filter by status code, e.g. completed."
+)
+def flights(airport, status):
     """Get a list of flight details."""
-    query = """
-        SELECT flight_number, departure_code, arrival_code,
-               departure_time, flight_time_minutes, status
-        FROM flight_details
-    """
-    params = ()
-    if airport.lower() != "all":
-        query += " WHERE departure_code = ? OR arrival_code = ?"
-        params = (airport.upper(), airport.upper())
-    query += " ORDER BY departure_time"
-
     with closing(get_connection()) as db:
-        rows = db.execute(query, params).fetchall()
+        rows = queries.get_flights(db, airport=airport, status=status)
 
-    if not rows:
-        click.echo("No flights found.")
-        return
-
-    for number, dep, arr, departs, mins, status in rows:
-        click.echo(
-            f"{number:<7} {dep} -> {arr}  {departs}  {mins // 60}h {mins % 60:02d}m  {status}"
-        )
+    table = [
+        [
+            row["flight_number"],
+            f"{row['departure_code']} -> {row['arrival_code']}",
+            row["departure_time"],
+            format_duration(row["flight_time_minutes"]),
+            row["status"],
+        ]
+        for row in rows
+    ]
+    print_table(
+        table,
+        headers=[
+            "Flight Number",
+            "Departure -> Arrival",
+            "Departure Time",
+            "Flight Length",
+            "Status",
+        ],
+        empty_message="No flights found.",
+    )
 
 
 if __name__ == "__main__":
