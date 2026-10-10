@@ -1,8 +1,22 @@
 """SQL queries. Each function takes an open connection and returns rows."""
 
 
-def get_flights(db, airport=None, status=None):
-    """Return flights, optionally filtered by airport code and/or status."""
+def _placeholders(values):
+    """Return '?, ?, ?' with one placeholder per value, for use in IN (...)."""
+    return ", ".join("?" * len(values))
+
+
+def get_flights(
+    db,
+    departure_airport=None,
+    arrival_airport=None,
+    status=(),
+    exclude_status=(),
+    date=None,
+):
+    """Return flights, optionally filtered by departure airport, arrival
+    airport, status (any of), excluded statuses (none of) and/or departure
+    date ('YYYY-MM-DD', UTC)."""
     query = """
         SELECT flight_number, departure_code, arrival_code,
                departure_time, flight_time_minutes, status
@@ -10,14 +24,53 @@ def get_flights(db, airport=None, status=None):
     """
     conditions = []
     params = []
-    if airport is not None:
-        conditions.append("(departure_code = ? OR arrival_code = ?)")
-        params += [airport.upper(), airport.upper()]
-    if status is not None:
-        conditions.append("LOWER(status) = LOWER(?)")
-        params.append(status)
+    if departure_airport is not None:
+        conditions.append("departure_code = ?")
+        params.append(departure_airport.upper())
+    if arrival_airport is not None:
+        conditions.append("arrival_code = ?")
+        params.append(arrival_airport.upper())
+    if status:
+        conditions.append(f"LOWER(status) IN ({_placeholders(status)})")
+        params += [s.lower() for s in status]
+    if exclude_status:
+        conditions.append(f"LOWER(status) NOT IN ({_placeholders(exclude_status)})")
+        params += [s.lower() for s in exclude_status]
+    if date is not None:
+        # departure_time is 'YYYY-MM-DD HH:MM:SS'; date() keeps just the day part.
+        conditions.append("date(departure_time) = ?")
+        params.append(date)
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
     query += " ORDER BY departure_time"
 
     return db.execute(query, params).fetchall()
+
+
+def get_pilot_schedule(db, licence_number):
+    query = """
+        SELECT fd.flight_number, fd.departure_code, fd.arrival_code,
+            fd.departure_time, fd.arrival_time, fc.role, fd.status
+        FROM pilot p
+        JOIN flight_crew fc    ON fc.pilot_id  = p.pilot_id
+        JOIN flight_details fd ON fd.flight_id = fc.flight_id
+        WHERE p.licence_number = ?
+        ORDER BY fd.departure_time;
+    """
+
+    params = [licence_number]
+
+    return db.execute(query, params).fetchall()
+
+
+def get_pilots(db):
+    """Return all pilots, with their phone numbers joined into one string."""
+    query = """
+        SELECT p.licence_number, p.first_name, p.last_name, p.hire_date, p.email,
+               GROUP_CONCAT(pp.phone_number, ', ') AS phone_numbers
+        FROM pilot p
+        LEFT JOIN pilot_phone pp ON pp.pilot_id = p.pilot_id
+        GROUP BY p.pilot_id
+        ORDER BY p.last_name, p.first_name
+    """
+    return db.execute(query).fetchall()

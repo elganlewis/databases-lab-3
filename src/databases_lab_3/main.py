@@ -25,15 +25,53 @@ def main():
     """Flight Management Database CLI."""
 
 
-@main.command()
-@click.option("--airport", "-a", default=None, help="Filter by airport code, e.g. LHR.")
+@main.group()
+def flights():
+    """Pilot commands."""
+
+
+@flights.command("list")
 @click.option(
-    "--status", "-s", default=None, help="Filter by status code, e.g. completed."
+    "--departure-airport",
+    "-D",
+    default=None,
+    help="Filter by departure airport code, e.g. LHR.",
 )
-def flights(airport, status):
+@click.option(
+    "--arrival-airport",
+    "-A",
+    default=None,
+    help="Filter by arrival airport code, e.g. JFK.",
+)
+@click.option(
+    "--status",
+    "-s",
+    multiple=True,
+    help="Only show flights with this status. Repeatable, e.g. -s scheduled -s delayed",
+)
+@click.option(
+    "--exclude-status",
+    "-x",
+    multiple=True,
+    help="Hide flights with this status. Repeatable, e.g. -x completed -x cancelled.",
+)
+@click.option(
+    "--date",
+    "-d",
+    default=None,
+    help="Filter by departure day in yyyy-mm-dd format, e.g. 2026-10-19.",
+)
+def flight_list(departure_airport, arrival_airport, status, exclude_status, date):
     """Get a list of flight details."""
     with closing(get_connection()) as db:
-        rows = queries.get_flights(db, airport=airport, status=status)
+        rows = queries.get_flights(
+            db,
+            departure_airport=departure_airport,
+            arrival_airport=arrival_airport,
+            status=status,
+            exclude_status=exclude_status,
+            date=date,
+        )
 
     table = [
         [
@@ -52,6 +90,70 @@ def flights(airport, status):
             "Departure -> Arrival",
             "Departure Time",
             "Flight Length",
+            "Status",
+        ],
+        empty_message="No flights found.",
+    )
+
+
+@main.group()
+def pilots():
+    """Pilot commands."""
+
+
+@pilots.command("list")
+def list_pilots():
+    """List all pilots."""
+    with closing(get_connection()) as db:
+        rows = queries.get_pilots(db)
+
+    table = [
+        [
+            row["licence_number"],
+            f"{row['first_name']} {row['last_name']}",
+            row["hire_date"] or "-",
+            row["email"] or "-",
+            row["phone_numbers"] or "-",
+        ]
+        for row in rows
+    ]
+    print_table(
+        table,
+        headers=["Licence Number", "Name", "Hire Date", "Email", "Phone Numbers"],
+        empty_message="No pilots found.",
+    )
+
+
+@pilots.command()
+@click.argument("licence_number")
+def schedule(licence_number):
+    """Get a given pilot's full schedule.
+
+    LICENCE_NUMBER is the pilot's licence number, e.g. UK-10234.
+    """
+    with closing(get_connection()) as db:
+        rows = queries.get_pilot_schedule(db, licence_number=licence_number)
+
+    table = [
+        [
+            row["flight_number"],
+            f"{row['departure_code']} -> {row['arrival_code']}",
+            row["departure_time"],
+            row["arrival_time"],
+            row["role"],
+            row["status"],
+        ]
+        for row in rows
+    ]
+
+    print_table(
+        table,
+        headers=[
+            "Flight Number",
+            "Departure -> Arrival",
+            "Departure Time",
+            "Arrival Time",
+            "Role",
             "Status",
         ],
         empty_message="No flights found.",
