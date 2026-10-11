@@ -48,6 +48,7 @@ def get_flights(
 
 
 def get_pilot_schedule(db, licence_number):
+    """Return a pilots's schedule from a given licence number"""
     query = """
         SELECT fd.flight_number, fd.departure_code, fd.arrival_code,
             fd.departure_time, fd.arrival_time, fc.role, fd.status
@@ -74,3 +75,35 @@ def get_pilots(db):
         ORDER BY p.last_name, p.first_name
     """
     return db.execute(query).fetchall()
+
+
+def get_airports(db, code=None, country=None):
+    """Return airports, with their runways (one per line) and lengths,
+    optionally filtered by IATA/ICAO code and/or country code."""
+    query = """
+        SELECT a.airport_id, a.iata_code, a.icao_code, a.airport_name,
+               a.city_name, a.country_code, a.timezone,
+               a.latitude, a.longitude, a.elevation_feet,
+               -- char(10) is a newline, so tabulate shows one runway per line
+               GROUP_CONCAT(
+                   r.runway_designation || ' (' || r.length_m || ' m)', char(10)
+               ) AS runways
+        FROM airport a
+        LEFT JOIN runway r ON r.airport_id = a.airport_id
+    """
+
+    conditions = []
+    params = []
+    if code is not None:
+        conditions.append("(a.iata_code = ? OR a.icao_code = ?)")
+        params += [code.upper(), code.upper()]
+    if country is not None:
+        conditions.append("a.country_code = ?")
+        params.append(country.upper())
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    query += """
+        GROUP BY a.airport_id
+        ORDER BY a.country_code, a.city_name
+    """
+    return db.execute(query, params).fetchall()

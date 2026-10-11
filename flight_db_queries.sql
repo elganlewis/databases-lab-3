@@ -231,9 +231,11 @@ ORDER BY fd.departure_time;
 -- =========================================================
 
 -- 4.1 View all airports
-SELECT airport_id, iata_code, icao_code, airport_name, city_name, country_code,
-       timezone, latitude, longitude, elevation_feet
-FROM airport
+SELECT a.airport_id, a.iata_code, a.icao_code, a.airport_name, a.city_name, a.country_code,
+       a.timezone, a.latitude, a.longitude, a.elevation_feet, group_concat(r.runway_designation || ' (' || r.length_m || ' m)', ', ') AS runways
+FROM airport a 
+LEFT JOIN runway r ON r.airport_id = a.airport_id
+GROUP BY a.airport_id
 ORDER BY country_code, city_name;
 
 -- 4.2 Search by city or country code
