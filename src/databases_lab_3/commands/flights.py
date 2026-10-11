@@ -14,7 +14,7 @@ from databases_lab_3.utils import (
 
 @click.group()
 def flights():
-    """Flight commands."""
+    """Commands for managing flights and crew assignments."""
 
 
 @flights.command("list")
@@ -34,7 +34,9 @@ def flights():
     "--status",
     "-s",
     multiple=True,
-    help="Only show flights with this status. Repeatable, e.g. -s scheduled -s delayed",
+    help=(
+        "Only show flights with this status. Repeatable, e.g. -s scheduled -s delayed."
+    ),
 )
 @click.option(
     "--exclude-status",
@@ -46,10 +48,14 @@ def flights():
     "--date",
     "-d",
     default=None,
-    help="Filter by departure day in yyyy-mm-dd format, e.g. 2026-10-19.",
+    help="Filter by departure day in YYYY-MM-DD format, e.g. 2026-10-19.",
 )
 def flight_list(departure_airport, arrival_airport, status, exclude_status, date):
-    """Get a list of flight details."""
+    """List flights with their ID, route, departure time, duration and status.
+
+    Combine filters freely, e.g. --departure-airport LHR --status scheduled.
+    Use the Flight ID shown here with other commands such as 'flights details'.
+    """
     with closing(get_connection()) as db:
         rows = queries.get_flights(
             db,
@@ -87,7 +93,7 @@ def flight_list(departure_airport, arrival_airport, status, exclude_status, date
 
 @flights.command("needs-crew")
 def needs_crew():
-    """List flights with unfilled Captain or First Officer roles."""
+    """List scheduled or delayed flights missing a Captain or First Officer."""
     with closing(get_connection()) as db:
         rows = queries.get_available_flights(db)
 
@@ -121,9 +127,9 @@ def needs_crew():
 @flights.command("crew")
 @click.argument("flight_id", type=int)
 def crew(flight_id):
-    """List pilots assigned to a flight.
+    """List the pilots assigned to a flight.
 
-    FLIGHT_ID is the numeric flight ID (see 'flights needs-crew').
+    FLIGHT_ID is the numeric flight ID (see: flights list).
     """
     with closing(get_connection()) as db:
         rows = queries.get_flight_crew(db, flight_id)
@@ -142,9 +148,11 @@ def crew(flight_id):
 @flights.command("available-pilots")
 @click.argument("flight_id", type=int)
 def available_pilots(flight_id):
-    """List pilots available for a given flight (no scheduling conflicts).
+    """List pilots with no scheduling conflict for a flight.
 
-    FLIGHT_ID is the numeric flight ID (see 'flights needs-crew').
+    FLIGHT_ID is the numeric flight ID (see: flights list).
+    A pilot is excluded if they are already on any flight whose time window
+    overlaps with this one.
     """
     with closing(get_connection()) as db:
         rows = queries.get_available_pilots(db, flight_id)
@@ -161,8 +169,19 @@ def available_pilots(flight_id):
 
 
 @flights.command("assign-pilot")
-@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
-@click.option("--licence-number", "-l", prompt="Licence number")
+@click.option(
+    "--flight-id",
+    "-f",
+    type=int,
+    prompt="Flight ID",
+    help="Numeric flight ID (see: flights list).",
+)
+@click.option(
+    "--licence-number",
+    "-l",
+    prompt="Licence number",
+    help="Pilot's licence number, e.g. UK-10234.",
+)
 @click.option(
     "--role",
     "-r",
@@ -171,7 +190,12 @@ def available_pilots(flight_id):
     help="Role to assign: Captain or 'First Officer'.",
 )
 def assign_pilot(flight_id, licence_number, role):
-    """Assign a pilot to a flight."""
+    """Assign a pilot to a flight as Captain or First Officer.
+
+    Validates that the pilot exists, has no overlapping flights, and that the
+    role is not already filled. Use 'flights available-pilots' to find eligible
+    pilots first.
+    """
     role = "First Officer" if role.lower() == "first officer" else "Captain"
 
     with closing(get_connection()) as db:
@@ -205,9 +229,9 @@ def assign_pilot(flight_id, licence_number, role):
 @flights.command("details")
 @click.argument("flight_id", type=int)
 def flight_details(flight_id):
-    """Show full details for a flight including its crew.
+    """Show full details for a single flight including its assigned crew.
 
-    FLIGHT_ID is the numeric flight ID (see 'flights list').
+    FLIGHT_ID is the numeric flight ID (see: flights list).
     """
     with closing(get_connection()) as db:
         flight, crew = queries.get_flight_details(db, flight_id)
@@ -236,9 +260,15 @@ def flight_details(flight_id):
 
 
 @flights.command("cancel")
-@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
+@click.option(
+    "--flight-id",
+    "-f",
+    type=int,
+    prompt="Flight ID",
+    help="Numeric flight ID (see: flights list).",
+)
 def cancel_flight(flight_id):
-    """Cancel a flight (must be Scheduled or Delayed)."""
+    """Cancel a flight. Only Scheduled or Delayed flights can be cancelled."""
     with closing(get_connection()) as db:
         updated = queries.cancel_flight(db, flight_id)
 
@@ -253,9 +283,11 @@ def cancel_flight(flight_id):
 
 @flights.command("refresh-status")
 def refresh_status():
-    """Update flight statuses based on current UTC time.
+    """Bulk-update flight statuses based on current UTC time.
 
-    Marks departed flights as In Progress and landed flights as Completed.
+    Marks flights as In Progress once departed and Completed once landed.
+    Cancelled flights are never overwritten. Run this periodically to keep
+    statuses accurate.
     """
     with closing(get_connection()) as db:
         in_progress, completed = queries.refresh_flight_statuses(db)
@@ -265,8 +297,19 @@ def refresh_status():
 
 
 @flights.command("unassign-pilot")
-@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
-@click.option("--licence-number", "-l", prompt="Licence number")
+@click.option(
+    "--flight-id",
+    "-f",
+    type=int,
+    prompt="Flight ID",
+    help="Numeric flight ID (see: flights list).",
+)
+@click.option(
+    "--licence-number",
+    "-l",
+    prompt="Licence number",
+    help="Pilot's licence number, e.g. UK-10234.",
+)
 def unassign_pilot(flight_id, licence_number):
     """Remove a pilot from a flight's crew."""
     with closing(get_connection()) as db:
@@ -286,10 +329,26 @@ def unassign_pilot(flight_id, licence_number):
 
 
 @flights.command("delay")
-@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
-@click.option("--minutes", "-m", type=int, prompt="Delay by (minutes)")
+@click.option(
+    "--flight-id",
+    "-f",
+    type=int,
+    prompt="Flight ID",
+    help="Numeric flight ID (see: flights list).",
+)
+@click.option(
+    "--minutes",
+    "-m",
+    type=int,
+    prompt="Delay by (minutes)",
+    help="Number of minutes to push the departure time forward. Must be positive.",
+)
 def delay_flight(flight_id, minutes):
-    """Delay a flight by a given number of minutes."""
+    """Delay a flight by a given number of minutes.
+
+    Shifts the departure time forward and sets status to Delayed. Only
+    Scheduled or already Delayed flights can be delayed.
+    """
     if minutes <= 0:
         raise click.ClickException("Delay must be a positive number of minutes.")
 
@@ -307,7 +366,12 @@ def delay_flight(flight_id, minutes):
 
 @flights.command("add")
 def add_flight():
-    """Add a new flight."""
+    """Add a new flight, prompting for all required details.
+
+    Both airports must already exist (see: airports add). The aircraft must
+    be registered (see: aircraft add). Flight duration is estimated from
+    airport coordinates but can be overridden.
+    """
     with closing(get_connection()) as db:
         departure_code = click.prompt("Departure airport code").upper()
         departure_airport = queries.get_airport_by_code(db, departure_code)
@@ -355,28 +419,46 @@ def add_flight():
 
 
 @flights.command("update")
-@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
-@click.option("--flight-number", "-n", default=None, help="New flight number.")
+@click.option(
+    "--flight-id",
+    "-f",
+    type=int,
+    prompt="Flight ID",
+    help="Numeric flight ID (see: flights list).",
+)
+@click.option(
+    "--flight-number",
+    "-n",
+    default=None,
+    help="New flight number, e.g. BA214.",
+)
 @click.option(
     "--departure-time",
     "-d",
     default=None,
-    help="New departure time (YYYY-MM-DD HH:MM:SS).",
+    help="New departure time in YYYY-MM-DD HH:MM:SS format (UTC).",
 )
 @click.option(
     "--flight-time-minutes",
     "-t",
     type=int,
     default=None,
-    help="New flight duration in minutes.",
+    help="New flight duration in minutes (must be positive).",
 )
 @click.option(
-    "--aircraft", "-a", default=None, help="New aircraft registration number."
+    "--aircraft",
+    "-a",
+    default=None,
+    help="New aircraft registration number, e.g. G-XWBA (must already exist).",
 )
 def update_flight(
     flight_id, flight_number, departure_time, flight_time_minutes, aircraft
 ):
-    """Update a flight's details. Only supplied options are changed."""
+    """Update a flight's details. Only supplied options are changed.
+
+    To change crew assignments use 'flights assign-pilot' and
+    'flights unassign-pilot'. Route (airports) cannot be changed here.
+    """
     with closing(get_connection()) as db:
         flight = queries.get_flight_by_id(db, flight_id)
         if flight is None:
