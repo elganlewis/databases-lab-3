@@ -5,6 +5,7 @@ import click
 import databases_lab_3.queries as queries
 from databases_lab_3.utils import (
     available_role,
+    estimate_flight_minutes,
     format_duration,
     get_connection,
     print_table,
@@ -159,7 +160,7 @@ def available_pilots(flight_id):
     )
 
 
-@flights.command("assign")
+@flights.command("assign-pilot")
 @click.option("--flight-id", "-f", type=int, prompt="Flight ID")
 @click.option("--licence-number", "-l", prompt="Licence number")
 @click.option(
@@ -201,17 +202,203 @@ def assign_pilot(flight_id, licence_number, role):
     click.echo(f"Assigned {name} ({licence_number}) as {role} on flight {flight_id}.")
 
 
+@flights.command("details")
+@click.argument("flight_id", type=int)
+def flight_details(flight_id):
+    """Show full details for a flight including its crew.
+
+    FLIGHT_ID is the numeric flight ID (see 'flights list').
+    """
+    with closing(get_connection()) as db:
+        flight, crew = queries.get_flight_details(db, flight_id)
+
+    if flight is None:
+        raise click.ClickException(f"No flight found with ID {flight_id}.")
+
+    click.echo(f"Flight:     {flight['flight_number']}  (ID {flight_id})")
+    click.echo(f"Route:      {flight['departure_code']} -> {flight['arrival_code']}")
+    click.echo(f"Departure:  {flight['departure_time']}")
+    click.echo(f"Arrival:    {flight['arrival_time']}")
+    click.echo(f"Duration:   {format_duration(flight['flight_time_minutes'])}")
+    click.echo(f"Aircraft:   {flight['registration_number']}")
+    click.echo(f"Status:     {flight['status']}")
+    click.echo("")
+
+    crew_rows = [
+        [r["licence_number"], f"{r['first_name']} {r['last_name']}", r["role"]]
+        for r in crew
+    ]
+    print_table(
+        crew_rows,
+        headers=["Licence Number", "Name", "Role"],
+        empty_message="No crew assigned.",
+    )
+
+
+@flights.command("cancel")
+@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
+def cancel_flight(flight_id):
+    """Cancel a flight (must be Scheduled or Delayed)."""
+    with closing(get_connection()) as db:
+        updated = queries.cancel_flight(db, flight_id)
+
+    if not updated:
+        raise click.ClickException(
+            f"Flight {flight_id} was not cancelled. "
+            "It may not exist or its status does not allow cancellation "
+            "(must be Scheduled or Delayed)."
+        )
+    click.echo(f"Flight {flight_id} cancelled.")
+
+
+@flights.command("refresh-status")
+def refresh_status():
+    """Update flight statuses based on current UTC time.
+
+    Marks departed flights as In Progress and landed flights as Completed.
+    """
+    with closing(get_connection()) as db:
+        in_progress, completed = queries.refresh_flight_statuses(db)
+
+    click.echo(f"Marked {in_progress} flight(s) as In Progress.")
+    click.echo(f"Marked {completed} flight(s) as Completed.")
+
+
+@flights.command("unassign-pilot")
+@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
+@click.option("--licence-number", "-l", prompt="Licence number")
+def unassign_pilot(flight_id, licence_number):
+    """Remove a pilot from a flight's crew."""
+    with closing(get_connection()) as db:
+        pilot = queries.get_pilot_by_licence(db, licence_number)
+        if pilot is None:
+            raise click.ClickException(
+                f"No pilot found with licence number {licence_number!r}."
+            )
+        removed = queries.unassign_pilot_from_flight(db, flight_id, pilot["pilot_id"])
+
+    if not removed:
+        raise click.ClickException(
+            f"Pilot {licence_number} is not assigned to flight {flight_id}."
+        )
+    name = f"{pilot['first_name']} {pilot['last_name']}"
+    click.echo(f"Removed {name} ({licence_number}) from flight {flight_id}.")
+
+
 @flights.command("delay")
-def delay_flight():
-    pass  # TODO: add delay
+@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
+@click.option("--minutes", "-m", type=int, prompt="Delay by (minutes)")
+def delay_flight(flight_id, minutes):
+    """Delay a flight by a given number of minutes."""
+    if minutes <= 0:
+        raise click.ClickException("Delay must be a positive number of minutes.")
+
+    with closing(get_connection()) as db:
+        updated = queries.delay_flight(db, flight_id, minutes)
+
+    if not updated:
+        raise click.ClickException(
+            f"Flight {flight_id} was not updated. "
+            "It may not exist or its status does not allow delays "
+            "(must be Scheduled or Delayed)."
+        )
+    click.echo(f"Flight {flight_id} delayed by {minutes} minutes.")
 
 
 @flights.command("add")
 def add_flight():
-    pass  # TODO: add add command
+    """Add a new flight."""
+    with closing(get_connection()) as db:
+        departure_code = click.prompt("Departure airport code").upper()
+        departure_airport = queries.get_airport_by_code(db, departure_code)
+        if departure_airport is None:
+            raise click.ClickException(
+                f"Airport {departure_code!r} not found. Add it first with: airports add"
+            )
+
+        arrival_code = click.prompt("Arrival airport code").upper()
+        arrival_airport = queries.get_airport_by_code(db, arrival_code)
+        if arrival_airport is None:
+            raise click.ClickException(
+                f"Airport {arrival_code!r} not found. Add it first with: airports add"
+            )
+
+        registration = click.prompt("Aircraft registration").upper()
+        aircraft = queries.get_aircraft_by_registration(db, registration)
+        if aircraft is None:
+            raise click.ClickException(f"Aircraft {registration!r} not found.")
+
+        flight_number = click.prompt("Flight number").upper()
+        departure_time = click.prompt("Departure time (YYYY-MM-DD HH:MM:SS)")
+
+        estimated = estimate_flight_minutes(
+            departure_airport["latitude"],
+            departure_airport["longitude"],
+            arrival_airport["latitude"],
+            arrival_airport["longitude"],
+        )
+        flight_time_minutes = click.prompt(
+            "Flight time (minutes)", default=estimated, type=int
+        )
+
+        flight_id = queries.add_flight(
+            db,
+            flight_number=flight_number,
+            departure_airport_id=departure_airport["airport_id"],
+            arrival_airport_id=arrival_airport["airport_id"],
+            aircraft_id=aircraft["aircraft_id"],
+            departure_time=departure_time,
+            flight_time_minutes=flight_time_minutes,
+        )
+
+    click.echo(f"Added flight {flight_number} (ID {flight_id}).")
 
 
 @flights.command("update")
-@click.option("--flight-id", "-f", prompt="FlightID")
-def update_flight(flight_id):
-    pass  # TODO: add update command
+@click.option("--flight-id", "-f", type=int, prompt="Flight ID")
+@click.option("--flight-number", "-n", default=None, help="New flight number.")
+@click.option(
+    "--departure-time",
+    "-d",
+    default=None,
+    help="New departure time (YYYY-MM-DD HH:MM:SS).",
+)
+@click.option(
+    "--flight-time-minutes",
+    "-t",
+    type=int,
+    default=None,
+    help="New flight duration in minutes.",
+)
+@click.option(
+    "--aircraft", "-a", default=None, help="New aircraft registration number."
+)
+def update_flight(
+    flight_id, flight_number, departure_time, flight_time_minutes, aircraft
+):
+    """Update a flight's details. Only supplied options are changed."""
+    with closing(get_connection()) as db:
+        flight = queries.get_flight_by_id(db, flight_id)
+        if flight is None:
+            raise click.ClickException(f"No flight found with ID {flight_id}.")
+
+        aircraft_id = None
+        if aircraft is not None:
+            row = queries.get_aircraft_by_registration(db, aircraft)
+            if row is None:
+                raise click.ClickException(f"Aircraft {aircraft!r} not found.")
+            aircraft_id = row["aircraft_id"]
+
+        updated = queries.update_flight(
+            db,
+            flight_id,
+            flight_number=flight_number.upper() if flight_number else None,
+            departure_time=departure_time,
+            flight_time_minutes=flight_time_minutes,
+            aircraft_id=aircraft_id,
+        )
+
+    if not updated:
+        click.echo("No changes made.")
+    else:
+        click.echo(f"Flight {flight_id} updated.")

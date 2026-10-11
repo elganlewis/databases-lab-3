@@ -157,6 +157,159 @@ def get_available_flights(db):
 get_avaliable_flights = get_available_flights
 
 
+def get_airport_by_code(db, code):
+    """Return a single airport row matching an IATA or ICAO code, or None."""
+    return db.execute(
+        "SELECT airport_id, iata_code, icao_code, latitude, longitude "
+        "FROM airport WHERE iata_code = ? OR icao_code = ?",
+        (code.upper(), code.upper()),
+    ).fetchone()
+
+
+def get_aircraft_by_registration(db, registration):
+    """Return an aircraft row matching the registration number, or None."""
+    return db.execute(
+        "SELECT aircraft_id, registration_number, model FROM aircraft "
+        "WHERE registration_number = ?",
+        (registration.upper(),),
+    ).fetchone()
+
+
+def add_flight(db, flight_number, departure_airport_id, arrival_airport_id,
+               aircraft_id, departure_time, flight_time_minutes):
+    """Insert a new flight and return its flight_id."""
+    cursor = db.execute(
+        """
+        INSERT INTO flight
+            (flight_number, departure_airport_id, arrival_airport_id,
+             aircraft_id, departure_time, flight_time_minutes)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (flight_number, departure_airport_id, arrival_airport_id,
+         aircraft_id, departure_time, flight_time_minutes),
+    )
+    db.commit()
+    return cursor.lastrowid
+
+
+def get_flight_by_id(db, flight_id):
+    """Return a single flight row from flight_details, or None."""
+    return db.execute(
+        "SELECT * FROM flight_details WHERE flight_id = ?",
+        (flight_id,),
+    ).fetchone()
+
+
+def delay_flight(db, flight_id, minutes):
+    """Shift a flight's departure time forward and mark it Delayed.
+    Only updates flights that are Scheduled or already Delayed.
+    Returns the number of rows updated (0 = flight not found or wrong status)."""
+    cursor = db.execute(
+        """
+        UPDATE flight
+        SET departure_time = datetime(departure_time, ? || ' minutes'),
+            status         = 'Delayed'
+        WHERE flight_id = ?
+          AND status IN ('Scheduled', 'Delayed')
+        """,
+        (minutes, flight_id),
+    )
+    db.commit()
+    return cursor.rowcount
+
+
+def update_flight(db, flight_id, flight_number=None, departure_time=None,
+                  flight_time_minutes=None, aircraft_id=None):
+    """Update editable fields on a flight. Only non-None values are applied."""
+    fields = []
+    params = []
+    if flight_number is not None:
+        fields.append("flight_number = ?")
+        params.append(flight_number)
+    if departure_time is not None:
+        fields.append("departure_time = ?")
+        params.append(departure_time)
+    if flight_time_minutes is not None:
+        fields.append("flight_time_minutes = ?")
+        params.append(flight_time_minutes)
+    if aircraft_id is not None:
+        fields.append("aircraft_id = ?")
+        params.append(aircraft_id)
+    if not fields:
+        return 0
+    params.append(flight_id)
+    cursor = db.execute(
+        f"UPDATE flight SET {', '.join(fields)} WHERE flight_id = ?", params
+    )
+    db.commit()
+    return cursor.rowcount
+
+
+def cancel_flight(db, flight_id):
+    """Cancel a flight. Only updates flights that are Scheduled or Delayed.
+    Returns the number of rows updated (0 = not found or wrong status)."""
+    cursor = db.execute(
+        """
+        UPDATE flight SET status = 'Cancelled'
+        WHERE flight_id = ? AND status IN ('Scheduled', 'Delayed')
+        """,
+        (flight_id,),
+    )
+    db.commit()
+    return cursor.rowcount
+
+
+def refresh_flight_statuses(db):
+    """Mark departed flights as In Progress and landed flights as Completed.
+    Returns (in_progress_count, completed_count)."""
+    in_progress = db.execute(
+        """
+        UPDATE flight SET status = 'In Progress'
+        WHERE status IN ('Scheduled', 'Delayed')
+          AND departure_time <= datetime('now')
+          AND datetime(departure_time, '+' || flight_time_minutes || ' minutes') > datetime('now')
+        """
+    ).rowcount
+    completed = db.execute(
+        """
+        UPDATE flight SET status = 'Completed'
+        WHERE status IN ('Scheduled', 'Delayed', 'In Progress')
+          AND datetime(departure_time, '+' || flight_time_minutes || ' minutes') <= datetime('now')
+        """
+    ).rowcount
+    db.commit()
+    return in_progress, completed
+
+
+def get_flight_details(db, flight_id):
+    """Return full details for a single flight including crew."""
+    flight = db.execute(
+        "SELECT * FROM flight_details WHERE flight_id = ?", (flight_id,)
+    ).fetchone()
+    crew = db.execute(
+        """
+        SELECT p.licence_number, p.first_name, p.last_name, fc.role
+        FROM flight_crew fc
+        JOIN pilot p ON p.pilot_id = fc.pilot_id
+        WHERE fc.flight_id = ?
+        ORDER BY fc.role
+        """,
+        (flight_id,),
+    ).fetchall()
+    return flight, crew
+
+
+def unassign_pilot_from_flight(db, flight_id, pilot_id):
+    """Remove a pilot from a flight's crew.
+    Returns the number of rows deleted (0 = assignment not found)."""
+    cursor = db.execute(
+        "DELETE FROM flight_crew WHERE flight_id = ? AND pilot_id = ?",
+        (flight_id, pilot_id),
+    )
+    db.commit()
+    return cursor.rowcount
+
+
 def get_available_pilots(db, flight_id):
     """Return pilots with no scheduling conflict for the given flight."""
     query = """

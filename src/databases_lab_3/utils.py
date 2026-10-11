@@ -1,5 +1,6 @@
 """Database connection handling."""
 
+import math
 import sqlite3
 from pathlib import Path
 
@@ -42,4 +43,16 @@ def available_role(row):
     return ", ".join(roles) if roles else "-"
 
 
-avaliable_role = available_role
+def estimate_flight_minutes(lat1, lon1, lat2, lon2, speed_kmh=900):
+    """Estimate flight duration in minutes using great-circle distance."""
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dlon / 2) ** 2
+    )
+    distance_km = R * 2 * math.asin(math.sqrt(a))
+    return round(distance_km / speed_kmh * 60)
