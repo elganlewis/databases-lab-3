@@ -79,14 +79,14 @@ def flight_list(departure_airport, arrival_airport, status, exclude_status, date
 
 @flights.command("delay")
 def delay_flight():
-    pass
+    pass  # TODO: add delay
 
 
 @flights.command("add")
 def add_flight():
-    pass
+    pass  # TODO: add add command
 
 
 @flights.command("update")
 def update_flight():
-    pass
+    pass  # TODO: add update command

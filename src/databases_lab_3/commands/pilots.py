@@ -77,14 +77,14 @@ def assign_pilot():
 
 @pilots.command("add")
 def add_pilot():
-    pass
+    pass  # TODO: add add command
 
 
 @pilots.command("remove")
 def remove_pilot():
-    pass
+    pass  # TODO: add remove
 
 
 @pilots.command("update")
 def udpate_pilot():
-    pass
+    pass  # TODO: add update

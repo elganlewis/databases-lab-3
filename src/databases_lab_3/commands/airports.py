@@ -67,3 +67,13 @@ def remove_airport():
 @airports.command("update")
 def update_airport():
     pass  # TODO: add update
+
+
+@airports.command("add-runway")
+def add_runway():
+    pass  # TODO: add runway command
+
+
+@airports.command("update-runway")
+def update_runway():
+    pass  # TODO: add update runway command

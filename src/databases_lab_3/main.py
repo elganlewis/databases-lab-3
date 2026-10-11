@@ -1,8 +1,8 @@
 import click
 
-from databases_lab_3.airports import airports
-from databases_lab_3.flights import flights
-from databases_lab_3.pilots import pilots
+from databases_lab_3.commands.airports import airports
+from databases_lab_3.commands.flights import flights
+from databases_lab_3.commands.pilots import pilots
 
 
 @click.group()
