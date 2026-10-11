@@ -157,6 +157,36 @@ def get_available_flights(db):
 get_avaliable_flights = get_available_flights
 
 
+def get_available_pilots(db, flight_id):
+    """Return pilots with no scheduling conflict for the given flight."""
+    query = """
+        SELECT p.pilot_id, p.licence_number, p.first_name, p.last_name
+        FROM pilot p
+        WHERE p.pilot_id NOT IN (
+            SELECT fc.pilot_id
+            FROM flight_crew fc
+            JOIN flight_details fd     ON fd.flight_id = fc.flight_id
+            JOIN flight_details target ON target.flight_id = ?
+            WHERE fd.departure_time < target.arrival_time
+              AND fd.arrival_time   > target.departure_time
+        )
+        ORDER BY p.last_name, p.first_name
+    """
+    return db.execute(query, (flight_id,)).fetchall()
+
+
+def get_flight_crew(db, flight_id):
+    """Return pilots assigned to a flight, ordered by role."""
+    query = """
+        SELECT p.pilot_id, p.licence_number, p.first_name, p.last_name, fc.role
+        FROM flight_crew fc
+        JOIN pilot p ON p.pilot_id = fc.pilot_id
+        WHERE fc.flight_id = ?
+        ORDER BY fc.role
+    """
+    return db.execute(query, (flight_id,)).fetchall()
+
+
 def get_pilot_by_licence(db, licence_number):
     """Return a pilot row for the given licence number, or None."""
     return db.execute(
