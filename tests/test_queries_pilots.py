@@ -15,8 +15,14 @@ from databases_lab_3.queries.pilots import (
 )
 
 
-def _add(db, licence="UK-00001", first="Alice", last="Smith",
-         hire_date="2020-01-01", email="alice@test.com"):
+def _add(
+    db,
+    licence="UK-00001",
+    first="Alice",
+    last="Smith",
+    hire_date="2020-01-01",
+    email="alice@test.com",
+):
     return add_pilot(db, licence, first, last, hire_date, email)
 
 
@@ -82,7 +88,7 @@ class TestAddPilot:
         assert isinstance(pilot_id, int) and pilot_id > 0
 
     def test_optional_fields_nullable(self, db):
-        pilot_id = add_pilot(db, "UK-99999", "No", "Details", None, None)
+        add_pilot(db, "UK-99999", "No", "Details", None, None)
         row = get_pilots(db, "UK-99999", None)[0]
         assert row["hire_date"] is None
         assert row["email"] is None

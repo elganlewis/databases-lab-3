@@ -13,10 +13,19 @@ from databases_lab_3.queries.aircraft import (
 )
 
 
-def _add(db, registration="G-TEST", model="A320", manufacturer="Airbus",
-         capacity=180, range_km=6300, min_runway_m=1800, year=2015):
-    return add_aircraft(db, registration, model, manufacturer,
-                        capacity, range_km, min_runway_m, year)
+def _add(
+    db,
+    registration="G-TEST",
+    model="A320",
+    manufacturer="Airbus",
+    capacity=180,
+    range_km=6300,
+    min_runway_m=1800,
+    year=2015,
+):
+    return add_aircraft(
+        db, registration, model, manufacturer, capacity, range_km, min_runway_m, year
+    )
 
 
 class TestGetAircraft:

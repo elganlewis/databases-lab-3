@@ -258,7 +258,8 @@ class TestCrewAssignment:
         assert check_pilot_conflict(db, pilot_id, flight_id) == []
 
     def test_check_conflict_detected(self, db):
-        """Assign pilot to flight 1, then check for conflict on an overlapping flight 2."""
+        """Assign pilot to flight 1,
+        then check for conflict on an overlapping flight 2."""
         flight_id_1 = seed_flight(db)
         flight_id_2 = add_flight(db, "TS002", 1, 2, 1, "2030-06-01 11:00:00", 480)
         pilot_id = db.execute("SELECT pilot_id FROM pilot LIMIT 1").fetchone()[
@@ -269,7 +270,8 @@ class TestCrewAssignment:
         assert len(conflicts) == 1
 
     def test_no_conflict_non_overlapping(self, db):
-        """Pilot on flight 1 (morning) should have no conflict for flight 2 (next day)."""
+        """Pilot on flight 1 (morning)
+        should have no conflict for flight 2 (next day)."""
         flight_id_1 = seed_flight(db)
         flight_id_2 = add_flight(db, "TS002", 1, 2, 1, "2030-06-02 09:00:00", 480)
         pilot_id = db.execute("SELECT pilot_id FROM pilot LIMIT 1").fetchone()[

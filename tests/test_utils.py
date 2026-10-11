@@ -1,8 +1,11 @@
 """Tests for pure-Python utility functions."""
 
-import pytest
 
-from databases_lab_3.utils import available_role, estimate_flight_minutes, format_duration
+from databases_lab_3.utils import (
+    available_role,
+    estimate_flight_minutes,
+    format_duration,
+)
 
 
 class TestFormatDuration:
@@ -30,7 +33,7 @@ class TestEstimateFlightMinutes:
         assert 340 <= minutes <= 480
 
     def test_short_hop_less_than_long_haul(self):
-        short = estimate_flight_minutes(51.5, -0.5, 48.9, 2.35)   # LHR -> CDG
+        short = estimate_flight_minutes(51.5, -0.5, 48.9, 2.35)  # LHR -> CDG
         long_ = estimate_flight_minutes(51.5, -0.5, 40.6, -73.8)  # LHR -> JFK
         assert short < long_
 

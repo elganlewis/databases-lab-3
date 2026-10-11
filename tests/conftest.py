@@ -9,9 +9,7 @@ from pathlib import Path
 
 import pytest
 
-SCHEMA_SQL = (
-    Path(__file__).parent.parent / "flight_db_create_tables.sql"
-).read_text()
+SCHEMA_SQL = (Path(__file__).parent.parent / "flight_db_create_tables.sql").read_text()
 
 
 @pytest.fixture
@@ -28,6 +26,7 @@ def db():
 # ---------------------------------------------------------------------------
 # Seed helpers – call these inside individual tests as needed
 # ---------------------------------------------------------------------------
+
 
 def seed_airports(db):
     db.execute(

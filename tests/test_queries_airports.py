@@ -16,8 +16,18 @@ from databases_lab_3.queries.airports import (
 )
 
 
-def _add_airport(db, iata="LHR", icao="EGLL", name="Heathrow", city="London",
-                 country="GB", tz="Europe/London", lat=51.477, lon=-0.461, elev=83):
+def _add_airport(
+    db,
+    iata="LHR",
+    icao="EGLL",
+    name="Heathrow",
+    city="London",
+    country="GB",
+    tz="Europe/London",
+    lat=51.477,
+    lon=-0.461,
+    elev=83,
+):
     return add_airport(db, iata, icao, name, city, country, tz, lat, lon, elev)
 
 
@@ -27,14 +37,32 @@ class TestGetAirports:
 
     def test_returns_all(self, db):
         _add_airport(db, iata="LHR", icao="EGLL")
-        _add_airport(db, iata="JFK", icao="KJFK", city="New York",
-                     country="US", tz="America/New_York", lat=40.6, lon=-73.8, elev=13)
+        _add_airport(
+            db,
+            iata="JFK",
+            icao="KJFK",
+            city="New York",
+            country="US",
+            tz="America/New_York",
+            lat=40.6,
+            lon=-73.8,
+            elev=13,
+        )
         assert len(get_airports(db)) == 2
 
     def test_filter_by_iata(self, db):
         _add_airport(db, iata="LHR", icao="EGLL")
-        _add_airport(db, iata="JFK", icao="KJFK", city="New York",
-                     country="US", tz="America/New_York", lat=40.6, lon=-73.8, elev=13)
+        _add_airport(
+            db,
+            iata="JFK",
+            icao="KJFK",
+            city="New York",
+            country="US",
+            tz="America/New_York",
+            lat=40.6,
+            lon=-73.8,
+            elev=13,
+        )
         rows = get_airports(db, code="LHR")
         assert len(rows) == 1
         assert rows[0]["iata_code"] == "LHR"
@@ -46,8 +74,17 @@ class TestGetAirports:
 
     def test_filter_by_country(self, db):
         _add_airport(db, iata="LHR", icao="EGLL")
-        _add_airport(db, iata="JFK", icao="KJFK", city="New York",
-                     country="US", tz="America/New_York", lat=40.6, lon=-73.8, elev=13)
+        _add_airport(
+            db,
+            iata="JFK",
+            icao="KJFK",
+            city="New York",
+            country="US",
+            tz="America/New_York",
+            lat=40.6,
+            lon=-73.8,
+            elev=13,
+        )
         rows = get_airports(db, country="GB")
         assert len(rows) == 1
         assert rows[0]["country_code"] == "GB"
@@ -81,8 +118,9 @@ class TestAddAirport:
             _add_airport(db, iata="LGW", icao="EGLL")
 
     def test_null_iata_allowed(self, db):
-        airport_id = add_airport(db, None, "ZZZZ", "No IATA Airport", "Nowhere",
-                                 "GB", "UTC", 0.0, 0.0, 0)
+        airport_id = add_airport(
+            db, None, "ZZZZ", "No IATA Airport", "Nowhere", "GB", "UTC", 0.0, 0.0, 0
+        )
         assert airport_id > 0
 
 

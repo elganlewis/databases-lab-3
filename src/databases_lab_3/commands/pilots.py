@@ -119,7 +119,9 @@ def add_pilot():
 
 @pilots.command("update")
 @click.option(
-    "--licence", "-l", prompt="Licence number",
+    "--licence",
+    "-l",
+    prompt="Licence number",
     help="Licence number of the pilot to update, e.g. UK-10234.",
 )
 @click.option("--first-name", default=None, help="New first name.")
@@ -152,7 +154,9 @@ def update_pilot(licence, first_name, last_name, hire_date, email):
 
 @pilots.command("remove")
 @click.option(
-    "--licence", "-l", prompt="Licence number",
+    "--licence",
+    "-l",
+    prompt="Licence number",
     help="Licence number of the pilot to remove, e.g. UK-10234.",
 )
 def remove_pilot(licence):
@@ -177,11 +181,15 @@ def remove_pilot(licence):
 
 @pilots.command("add-phone")
 @click.option(
-    "--licence", "-l", prompt="Licence number",
+    "--licence",
+    "-l",
+    prompt="Licence number",
     help="Licence number of the pilot, e.g. UK-10234.",
 )
 @click.option(
-    "--phone", "-p", prompt="Phone number",
+    "--phone",
+    "-p",
+    prompt="Phone number",
     help="Phone number to add, e.g. +44 7700 900123. A pilot may have multiple.",
 )
 def add_phone(licence, phone):
@@ -205,11 +213,15 @@ def add_phone(licence, phone):
 
 @pilots.command("remove-phone")
 @click.option(
-    "--licence", "-l", prompt="Licence number",
+    "--licence",
+    "-l",
+    prompt="Licence number",
     help="Licence number of the pilot, e.g. UK-10234.",
 )
 @click.option(
-    "--phone", "-p", prompt="Phone number",
+    "--phone",
+    "-p",
+    prompt="Phone number",
     help="Exact phone number to remove.",
 )
 def remove_phone(licence, phone):
