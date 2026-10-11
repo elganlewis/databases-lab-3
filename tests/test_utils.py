@@ -1,6 +1,5 @@
 """Tests for pure-Python utility functions."""
 
-
 from databases_lab_3.utils import (
     available_role,
     estimate_flight_minutes,
