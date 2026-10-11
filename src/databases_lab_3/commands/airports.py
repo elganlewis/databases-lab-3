@@ -4,7 +4,12 @@ from contextlib import closing
 import click
 
 import databases_lab_3.queries as queries
-from databases_lab_3.utils import estimate_flight_minutes, get_connection, print_table
+from databases_lab_3.utils import (
+    estimate_flight_minutes,
+    get_connection,
+    haversine_km,
+    print_table,
+)
 
 
 @click.group()
@@ -289,13 +294,14 @@ def distance(code_a, code_b):
         if airport_b is None:
             raise click.ClickException(f"No airport found with code {code_b!r}.")
 
-    minutes = estimate_flight_minutes(
-        airport_a["latitude"],
-        airport_a["longitude"],
-        airport_b["latitude"],
-        airport_b["longitude"],
-    )
+    lat_a, lon_a = airport_a["latitude"], airport_a["longitude"]
+    lat_b, lon_b = airport_b["latitude"], airport_b["longitude"]
+    distance_km = haversine_km(lat_a, lon_a, lat_b, lon_b)
+    minutes = estimate_flight_minutes(lat_a, lon_a, lat_b, lon_b)
     hours, mins = divmod(minutes, 60)
     code_a, code_b = code_a.upper(), code_b.upper()
 
-    click.echo(f"{code_a} -> {code_b}:  ~{hours}h {mins:02d}m estimated flight time")
+    click.echo(
+        f"{code_a} -> {code_b}:  {distance_km:,.0f} km  "
+        f"(~{hours}h {mins:02d}m at 900 km/h)"
+    )

@@ -43,8 +43,8 @@ def available_role(row):
     return ", ".join(roles) if roles else "-"
 
 
-def estimate_flight_minutes(lat1, lon1, lat2, lon2, speed_kmh=900):
-    """Estimate flight duration in minutes using great-circle distance."""
+def haversine_km(lat1, lon1, lat2, lon2):
+    """Great-circle distance in km between two points."""
     R = 6371
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
@@ -54,5 +54,9 @@ def estimate_flight_minutes(lat1, lon1, lat2, lon2, speed_kmh=900):
         * math.cos(math.radians(lat2))
         * math.sin(dlon / 2) ** 2
     )
-    distance_km = R * 2 * math.asin(math.sqrt(a))
-    return round(distance_km / speed_kmh * 60)
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def estimate_flight_minutes(lat1, lon1, lat2, lon2, speed_kmh=900):
+    """Estimate flight duration in minutes using great-circle distance."""
+    return round(haversine_km(lat1, lon1, lat2, lon2) / speed_kmh * 60)
