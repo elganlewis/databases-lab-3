@@ -89,6 +89,19 @@ LEFT JOIN pilot p        ON p.pilot_id   = fc.pilot_id
 WHERE fd.flight_id = 1
 ORDER BY fc.role;
 
+-- 1.11 Full pilot details, were captain or first officer is null
+SELECT fd.flight_id, fd.flight_number, fd.departure_code, fd.arrival_code, fd.departure_time,
+       fd.arrival_time, fd.flight_time_minutes, fd.status, fd.registration_number,
+       MAX(CASE WHEN fc.role = 'Captain'       THEN p.first_name || ' ' || p.last_name END) AS captain,
+       MAX(CASE WHEN fc.role = 'Captain'       THEN p.licence_number END) AS captain_licence_number,
+       MAX(CASE WHEN fc.role = 'First Officer' THEN p.first_name || ' ' || p.last_name END) AS first_officer,
+       MAX(CASE WHEN fc.role = 'First Officer' THEN p.licence_number END) AS first_officer_licence_number
+FROM flight_details fd
+LEFT JOIN flight_crew fc ON fc.flight_id = fd.flight_id
+LEFT JOIN pilot p        ON p.pilot_id   = fc.pilot_id
+GROUP BY fd.flight_id
+HAVING first_officer IS NULL OR captain IS NULL;
+
 
 -- =========================================================
 -- 2. SCHEDULE MODIFICATION

@@ -30,3 +30,16 @@ def print_table(rows, headers, empty_message="No results found."):
 def format_duration(minutes):
     """Format a number of minutes as e.g. '1h 05m'."""
     return f"{minutes // 60}h {minutes % 60:02d}m"
+
+
+def available_role(row):
+    """Return missing roles (Captain, First Officer) for a flight row."""
+    roles = []
+    if not row["captain"]:
+        roles.append("Captain")
+    if not row["first_officer"]:
+        roles.append("First Officer")
+    return ", ".join(roles) if roles else "-"
+
+
+avaliable_role = available_role

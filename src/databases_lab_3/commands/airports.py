@@ -77,3 +77,8 @@ def add_runway():
 @airports.command("update-runway")
 def update_runway():
     pass  # TODO: add update runway command
+
+
+@airports.command("distance")
+def calculate_distance():
+    pass  # TODO: add command to calculate distance between two airports

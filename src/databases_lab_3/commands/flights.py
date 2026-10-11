@@ -56,6 +56,7 @@ def flight_list(departure_airport, arrival_airport, status, exclude_status, date
 
     table = [
         [
+            row["flight_id"],
             row["flight_number"],
             f"{row['departure_code']} -> {row['arrival_code']}",
             row["departure_time"],
@@ -67,6 +68,7 @@ def flight_list(departure_airport, arrival_airport, status, exclude_status, date
     print_table(
         table,
         headers=[
+            "Flight ID",
             "Flight Number",
             "Departure -> Arrival",
             "Departure Time",
@@ -88,5 +90,6 @@ def add_flight():
 
 
 @flights.command("update")
-def update_flight():
+@click.option("--flight-id", "-f", prompt="FlightID")
+def update_flight(flight_id):
     pass  # TODO: add update command
