@@ -93,7 +93,10 @@ def _show_dashboard():
     click.echo(click.style("  Common commands", bold=True))
     click.echo("  ─────────────────────────────────────────────────────")
     click.echo("  Add a new flight        flightdb flights add")
-    click.echo("  View flights            flightdb flights list [-D LHR] [-s Scheduled] [-d DATE]")
+    click.echo(
+        "  View flights"
+        "            flightdb flights list [-D LHR] [-s Scheduled] [-d DATE]"
+    )
     click.echo("  Update flight info      flightdb flights update")
     click.echo("  Assign pilot to flight  flightdb flights assign-pilot")
     click.echo("  View pilot schedule     flightdb pilots schedule <LICENCE>")
