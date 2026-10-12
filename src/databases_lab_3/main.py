@@ -90,8 +90,17 @@ def _show_dashboard():
         click.echo("  No upcoming scheduled flights.")
 
     click.echo("")
-    click.echo("  Commands: flights  pilots  airports  aircraft")
-    click.echo("  Run any command with --help for usage details.")
+    click.echo(click.style("  Common commands", bold=True))
+    click.echo("  ─────────────────────────────────────────────────────")
+    click.echo("  Add a new flight        flightdb flights add")
+    click.echo("  View flights            flightdb flights list [-D LHR] [-s Scheduled] [-d DATE]")
+    click.echo("  Update flight info      flightdb flights update")
+    click.echo("  Assign pilot to flight  flightdb flights assign-pilot")
+    click.echo("  View pilot schedule     flightdb pilots schedule <LICENCE>")
+    click.echo("  View destinations       flightdb airports list [--wide]")
+    click.echo("  Update destination      flightdb airports update")
+    click.echo("  ─────────────────────────────────────────────────────")
+    click.echo("  Run any command with --help for full usage details.")
 
 
 main.add_command(aircraft)
