@@ -5,7 +5,7 @@
 
 -- Airport(airport_id PK, iata_code, icao_code, airport_name, city_name, country_code, timezone, latitude, longitude)
 -- Aircraft(aircraft_id PK, model, manufacturer, capacity, registration_number, range_km, min_runway_m, year_manufactured, status)
--- Flight(flight_id PK, flight_number, departure_airport_id FK, arrival_airport_id FK, aircraft_id FK, departure_time, arrival_time, status)
+-- Flight(flight_id PK, flight_number, departure_airport_id FK, arrival_airport_id FK, aircraft_id FK, departure_time, flight_time_minutes, status)
 -- Pilot(pilot_id PK, licence_number, first_name, last_name, hire_date, email)
 -- Flight_Crew(flight_id PK/FK, pilot_id PK/FK, role)
 -- Runway(airport_id PK/FK, runway_designation PK, length_m, surface)
